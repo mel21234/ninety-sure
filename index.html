@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A daily game about knowing how sure you really are. Set a range you're 90% sure holds the answer. Ten new questions every day.">
+<meta name="theme-color" content="#ee5a1c">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-512.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Ninety Sure: how sure are you, really?">
+<meta property="og:description" content="Ten questions a day. Drag the calipers around your 90% range. Most people are right about half the time.">
+<meta property="og:image" content="og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<title>Ninety Sure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: a printed puzzle page. Thin top bar with the menu, one question sheet, a plain stats box. Light only. */
+:root{
+  --bg:#f4f3ef;        /* newsprint grey */
+  --card:#ffffff;
+  --ink:#1c1c1a;
+  --muted:#6c6b66;
+  --rule:#dedcd5;
+  --range:#ee5a1c;     /* the orange calipers */
+  --range-soft:#fde3d6;
+  --truth:#1d8457;
+  --miss:#c7362d;
+  --display:"Archivo","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --body:"Source Sans 3","Segoe UI",Helvetica,Arial,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:17px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--card)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--card);border-bottom:2px solid var(--ink)}
+.bar-in{max-width:780px;margin:0 auto;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:8px;display:flex;align-items:center;gap:10px}
+.menu-btn{width:42px;height:42px;border:0;background:transparent;border-radius:6px;display:grid;place-items:center;flex:none}
+.menu-btn:hover{background:var(--bg)}
+.menu-btn span{display:block;width:20px;height:2px;background:var(--ink);box-shadow:0 -6px 0 var(--ink),0 6px 0 var(--ink)}
+.brand{font-family:var(--display);font-weight:800;font-stretch:88%;font-size:24px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px;line-height:1;white-space:nowrap}
+.brand .mk{color:var(--range);font-stretch:100%}
+.hud{margin-left:auto;display:flex;gap:14px;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;flex-wrap:wrap;justify-content:flex-end}
+.hud b{color:var(--ink)}
+.wrap{max-width:780px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:22px 60px;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--range);outline-offset:2px}
+.btn{font-weight:700;font-size:16px;padding:11px 18px;border-radius:6px;border:2px solid var(--ink);background:var(--card)}
+.btn:hover{background:var(--bg)}
+.btn.go{background:var(--range);border-color:var(--range);color:#fff}
+.btn.go:hover{background:#d84e14;border-color:#d84e14}
+.btn.small{font-size:14px;padding:6px 11px}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+
+.card{background:var(--card);border:1px solid var(--rule);border-radius:4px;padding:clamp(18px,4vw,30px);display:flex;flex-direction:column;gap:20px;min-width:0}
+.eyebrow{font-size:14px;color:var(--muted)}
+
+/* home */
+.hero{display:flex;flex-direction:column;gap:10px}
+.hero h2{font-size:clamp(32px,6vw,48px);font-weight:800;font-stretch:90%;line-height:1.02;letter-spacing:-.015em}
+.hero p{margin:0;max-width:56ch;color:var(--muted)}
+.how{margin:0;padding:0 0 0 1.2em;display:flex;flex-direction:column;gap:4px}
+.how li{padding-left:2px}
+.how li::marker{color:var(--range);font-weight:700}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.daily-done{font-size:15px;color:var(--muted)}
+
+/* question */
+.qtop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.pips{display:flex;gap:4px}
+.pip{width:14px;height:14px;border-radius:2px;border:1.5px solid var(--rule);background:var(--card)}
+.pip.hit{background:var(--truth);border-color:var(--truth)}.pip.miss{background:var(--miss);border-color:var(--miss)}.pip.now{border-color:var(--ink)}
+.question{font-family:var(--display);font-size:clamp(25px,4.6vw,36px);font-weight:750;font-stretch:92%;line-height:1.12;letter-spacing:-.01em}
+.unit{font-size:15px;color:var(--muted)}
+
+/* the calipers */
+.cal{position:relative;height:120px;touch-action:none;user-select:none;-webkit-user-select:none;margin:30px 6px 0}
+.axis{position:absolute;left:0;right:0;top:66px;height:2px;background:var(--ink)}
+.tick{position:absolute;top:60px;width:1px;height:14px;background:var(--ink)}
+.tick.minor{top:63px;height:8px;opacity:.4}
+.ticklbl{position:absolute;top:80px;transform:translateX(-50%);font-size:13px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.band{position:absolute;top:56px;height:22px;background:var(--range-soft);border-top:2px solid var(--range);border-bottom:2px solid var(--range)}
+.jaw{position:absolute;top:18px;width:44px;margin-left:-22px;height:68px;cursor:grab;display:flex;justify-content:center;outline:none}
+.jaw::before{content:"";position:absolute;top:20px;bottom:0;left:50%;width:5px;margin-left:-2.5px;background:var(--range);border-radius:1px}
+.jaw .tag{position:absolute;top:-6px;white-space:nowrap;font-size:15px;font-weight:700;background:var(--range);color:#fff;padding:2px 8px;border-radius:3px;font-variant-numeric:tabular-nums}
+.jaw.lo .tag{right:22px}
+.jaw.hi .tag{left:22px}
+.jaw:focus-visible::before{box-shadow:0 0 0 4px var(--range-soft)}
+.jaw:active{cursor:grabbing}
+.truth{position:absolute;top:30px;width:0}
+.truth::before{content:"";position:absolute;top:10px;left:-2px;width:4px;height:52px;background:var(--truth)}
+.truth::after{content:"";position:absolute;top:2px;left:-8px;width:16px;height:16px;border-radius:50%;background:var(--truth)}
+.truth span{position:absolute;top:96px;transform:translateX(-50%);font-size:14px;font-weight:700;color:var(--truth);white-space:nowrap;background:var(--card);padding:0 4px}
+@media (prefers-reduced-motion:no-preference){.truth.drop::before,.truth.drop::after{animation:drop .45s cubic-bezier(.2,1.4,.4,1)}}
+@keyframes drop{from{transform:translateY(-30px);opacity:0}to{transform:none;opacity:1}}
+
+.typed{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.typed label{display:flex;flex-direction:column;gap:3px;font-size:14px;color:var(--muted)}
+.typed input{font-family:var(--body);font-size:17px;font-weight:600;color:var(--ink);background:var(--card);border:1.5px solid var(--rule);border-radius:4px;padding:8px 10px;width:170px;max-width:100%;font-variant-numeric:tabular-nums}
+.typed input:focus{border-color:var(--range);outline:none}
+.typed .dash{padding-bottom:9px;color:var(--muted)}
+.width{font-size:15px;color:var(--muted);flex:1;min-width:180px;text-align:right}
+.width b{color:var(--ink)}
+.hint{font-size:14.5px;color:var(--muted);margin:-10px 0 0}
+
+.verdict{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 16px;align-items:center;border-left:4px solid var(--truth);padding:6px 0 6px 14px}
+.verdict.miss{border-left-color:var(--miss)}
+.verdict .big{font-family:var(--display);font-weight:800;font-size:34px;line-height:1;grid-row:1/3;font-variant-numeric:tabular-nums}
+.verdict.hit .big{color:var(--truth)}.verdict.miss .big{color:var(--miss)}
+.verdict .vt{font-weight:700}
+.verdict .vn{font-size:15.5px;color:var(--muted)}
+.foot{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--rule);padding-top:16px}
+.kbd{font-size:14px;color:var(--muted)}
+
+/* results */
+.score-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--rule)}
+.sc{padding:12px 14px;border-right:1px solid var(--rule)}
+.sc:last-child{border-right:0}
+@media (max-width:520px){.score-row{grid-template-columns:minmax(0,1fr)}.sc{border-right:0;border-bottom:1px solid var(--rule)}.sc:last-child{border-bottom:0}}
+.sc .v{font-family:var(--display);font-weight:800;font-size:38px;line-height:1.05;font-variant-numeric:tabular-nums}
+.sc .l{font-size:14px;color:var(--muted)}
+.diag h3{font-size:26px;font-weight:800;font-stretch:92%}
+.diag p{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.recap{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.recap li{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:15.5px;align-items:baseline}
+.recap li:last-child{border-bottom:0}
+.recap .m{font-weight:700}
+.recap .m.hit{color:var(--truth)}.recap .m.miss{color:var(--miss)}
+.recap .r{font-size:14px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.recap .q{min-width:0}
+@media (max-width:520px){.recap li{grid-template-columns:20px minmax(0,1fr)}.recap .r{grid-column:2;text-align:left}}
+
+/* stats */
+.stats{gap:14px}
+.meter{position:relative;height:30px;background:var(--bg);border:1px solid var(--rule);overflow:hidden}
+.meter .fill{position:absolute;inset:0 auto 0 0;background:var(--ink)}
+.meter .target{position:absolute;top:0;bottom:0;width:3px;background:var(--range)}
+.meter .lab{position:absolute;inset:0;display:flex;align-items:center;padding:0 10px;font-size:14.5px;font-weight:600}
+.meter-cap{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.hist{display:flex;align-items:flex-end;gap:5px;height:90px;border-bottom:1px solid var(--ink);padding-bottom:0}
+.hist div{flex:1;min-width:6px;max-width:30px;background:var(--ink)}
+.hist div.ok{background:var(--truth)}
+.hist-wrap{position:relative}
+.hist-line{position:absolute;left:0;right:0;border-top:2px dashed var(--range)}
+.hist-line span{position:absolute;right:0;top:-20px;font-size:13px;color:var(--range);font-weight:600}
+
+/* menu drawer + calendar */
+.scrim{position:fixed;inset:0;background:rgba(28,28,26,.35);z-index:40}
+.drawer{position:fixed;top:0;bottom:0;left:0;width:min(340px,88vw);background:var(--card);z-index:41;border-right:2px solid var(--ink);overflow-y:auto;padding-top:calc(env(safe-area-inset-top,0px) + 12px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 20px);padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:18px;display:flex;flex-direction:column;gap:18px;transform:translateX(-102%);transition:transform .22s ease}
+.drawer.open{transform:none}
+.drawer-head{display:flex;justify-content:space-between;align-items:center}
+.close{width:40px;height:40px;border:0;background:transparent;border-radius:6px;font-size:24px;line-height:1}
+.close:hover{background:var(--bg)}
+.nav{display:flex;flex-direction:column;border-top:1px solid var(--rule)}
+.nav button{text-align:left;background:none;border:0;border-bottom:1px solid var(--rule);padding:12px 2px;font-weight:600;font-size:17px;display:flex;justify-content:space-between;gap:8px}
+.nav button span{font-weight:400;color:var(--muted);font-size:15px}
+.nav button:hover{color:var(--range)}
+.drawer h3{font-size:19px;font-weight:800}
+.month{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.month b{font-family:var(--display);font-weight:750;font-size:18px}
+.arrow{width:36px;height:36px;border:1.5px solid var(--rule);border-radius:4px;background:var(--card);font-size:18px;line-height:1}
+.arrow[disabled]{opacity:.3;cursor:not-allowed}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.dow{font-size:12px;color:var(--muted);text-align:center;padding-bottom:2px}
+.day{aspect-ratio:1;max-width:100%;border:1.5px solid var(--rule);border-radius:3px;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;font-variant-numeric:tabular-nums;padding:0;min-width:0}
+.day .n{font-weight:700;font-size:15px;line-height:1.1}
+.day .s{font-size:10.5px;line-height:1.1;color:var(--muted)}
+.day:hover:not([disabled]){border-color:var(--ink)}
+.day.played{background:var(--range-soft);border-color:var(--range-soft)}
+.day.played.good{background:#d8efe3;border-color:#d8efe3}
+.day.today{border-color:var(--range);border-width:2.5px}
+.day.sel{outline:2px solid var(--ink);outline-offset:1px}
+.day[disabled]{opacity:.32;cursor:not-allowed;background:transparent}
+.day.blank{border:0;background:none}
+.cal-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.cal-legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+/* colourways (all light) */
+:root[data-color="harbour"]{--range:#1f62c4;--range-soft:#dbe7fa}
+:root[data-color="olive"]{--range:#6f7f12;--range-soft:#ebefcf}
+:root[data-color="plum"]{--range:#a3306e;--range-soft:#f6dcea}
+:root[data-color="harbour"] .btn.go:hover,:root[data-color="olive"] .btn.go:hover,:root[data-color="plum"] .btn.go:hover{background:var(--range);filter:brightness(.92)}
+
+/* account sheet */
+.modal-scrim{position:fixed;inset:0;background:rgba(28,28,26,.45);z-index:70;display:flex;align-items:center;justify-content:center;padding:16px}
+.sheet{background:var(--card);border:2px solid var(--ink);border-radius:6px;max-width:440px;width:100%;max-height:calc(100% - 16px);overflow-y:auto;padding:26px 24px 18px;display:flex;flex-direction:column;gap:16px;box-shadow:6px 6px 0 var(--range)}
+.sheet .new{font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--range)}
+.sheet h2{font-size:28px;font-weight:800;font-stretch:90%;line-height:1.08;letter-spacing:-.01em}
+.sheet p{margin:0;color:var(--muted);font-size:16px}
+.perks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.perks li{display:grid;grid-template-columns:38px minmax(0,1fr);gap:12px;align-items:start}
+.perks .ic{width:38px;height:38px;border:1.5px solid var(--ink);border-radius:4px;display:grid;place-items:center;background:var(--bg)}
+.perks .ic svg{width:20px;height:20px}
+.perks b{display:block;font-size:16px}
+.perks span{font-size:14.5px;color:var(--muted);line-height:1.35}
+.soon{display:inline-block;font-size:11.5px;font-weight:700;color:var(--muted);border:1px solid var(--rule);border-radius:3px;padding:0 5px;margin-left:6px;vertical-align:2px}
+.ready{display:inline-block;font-size:11.5px;font-weight:700;color:var(--truth);border:1px solid var(--truth);border-radius:3px;padding:0 5px;margin-left:6px;vertical-align:2px}
+.sheet .btn{width:100%}
+.sheet .later{background:none;border:0;font-weight:700;color:var(--muted);padding:8px;font-size:16px}
+.sheet .later:hover{color:var(--ink)}
+.sheet .fine{font-size:13px;text-align:center;color:var(--muted)}
+.swatches{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.sw{border:1.5px solid var(--rule);border-radius:4px;background:var(--card);padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:13px;font-weight:600}
+.sw i{display:block;width:100%;max-width:56px;height:14px;border-radius:2px}
+.sw[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+
+/* advanced stats */
+.adv{display:flex;flex-direction:column;gap:18px}
+.adv-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--rule)}
+.adv-grid>div{padding:12px 14px;border-right:1px solid var(--rule);min-width:0}
+.adv-grid>div:last-child{border-right:0}
+@media (max-width:560px){.adv-grid{grid-template-columns:minmax(0,1fr)}.adv-grid>div{border-right:0;border-bottom:1px solid var(--rule)}.adv-grid>div:last-child{border-bottom:0}}
+.adv-grid .v{font-family:var(--display);font-weight:800;font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}
+.adv-grid .l{font-size:14px;color:var(--muted)}
+.bias{position:relative;height:14px;background:var(--bg);border:1px solid var(--rule)}
+.bias i{position:absolute;top:-4px;width:4px;height:20px;background:var(--ink);margin-left:-2px}
+.bias::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--muted)}
+.bias-cap{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.types{display:flex;flex-direction:column;gap:10px}
+.trow{display:grid;grid-template-columns:150px minmax(0,1fr) 92px;gap:10px;align-items:center;font-size:15px}
+.trow .tb{position:relative;height:12px;background:var(--bg);border:1px solid var(--rule)}
+.trow .tb i{position:absolute;inset:0 auto 0 0;background:var(--ink)}
+.trow .tb b{position:absolute;top:-3px;bottom:-3px;left:90%;width:2px;background:var(--range)}
+.trow .n{font-size:14px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:520px){.trow{grid-template-columns:minmax(0,1fr) 80px}.trow .tb{grid-column:1/3;grid-row:2}}
+.adv h4{margin:0 0 6px;font-size:16px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--card);padding:10px 16px;border-radius:4px;font-size:15px;z-index:60;max-width:calc(100% - 32px)}
+footer{font-size:14px;color:var(--muted);text-align:center;line-height:1.6}
+footer a{color:inherit}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>html,body{margin:0}img{max-width:100%}</style>
+</head>
+<body>
+
+
+<div class="bar"><div class="bar-in">
+  <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="drawer"><span></span></button>
+  <div class="brand"><span class="mk">[ ]</span>Ninety Sure</div>
+  <div class="hud" id="hud"></div>
+</div></div>
+
+<div class="scrim" id="scrim" hidden></div>
+<nav class="drawer" id="drawer" aria-label="Menu" aria-hidden="true">
+  <div class="drawer-head"><div class="brand"><span class="mk">[ ]</span>Ninety Sure</div><button class="close" id="closeMenu" type="button" aria-label="Close menu">×</button></div>
+  <div class="nav">
+    <button type="button" id="navToday">Today's game <span id="navTodayS"></span></button>
+    <button type="button" id="navPractice">Practice round <span>from past days</span></button>
+    <button type="button" id="navStats">My calibration</button>
+    <button type="button" id="navAccount">Account <span>coming soon</span></button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <h3>Theme</h3>
+    <div class="swatches" id="swMenu"></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <h3>Past games</h3>
+    <div class="month"><button class="arrow" id="mPrev" type="button" aria-label="Previous month">‹</button><b id="mName"></b><button class="arrow" id="mNext" type="button" aria-label="Next month">›</button></div>
+    <div class="calgrid" id="calgrid"></div>
+    <div class="cal-legend"><span><i style="background:#d8efe3"></i>9 or 10 inside</span><span><i style="background:var(--range-soft)"></i>played</span><span><i style="border:2px solid var(--range)"></i>today</span></div>
+    <p class="eyebrow" style="margin:0" id="archNote"></p>
+  </div>
+</nav>
+
+<div class="wrap">
+  <!-- HOME -->
+  <section class="card" id="home">
+    <div class="hero">
+      <span class="eyebrow" id="todayLbl">Today</span>
+      <h2>How sure are you, really?</h2>
+      <p>Most people say “90% sure” and are right about half the time. This is a daily game for the skill behind good guesses: prices, travel times, deadlines, the numbers in the news.</p>
+    </div>
+    <ol class="how">
+      <li>Drag the orange calipers around the numbers you're 90% sure the answer is between.</li>
+      <li>A tight range earns up to 100 points. Miss the answer and you get nothing.</li>
+      <li>Truly 90%-sure ranges catch about 9 answers in 10. See how close you get.</li>
+    </ol>
+    <div class="actions">
+      <button class="btn go" id="playDaily" type="button">Play today's 10</button>
+      <button class="btn" id="playPractice" type="button">Practice round</button>
+      <span class="daily-done" id="dailyDone"></span>
+    </div>
+  </section>
+
+  <!-- PLAY -->
+  <section class="card" id="play" hidden>
+    <div class="qtop"><span class="eyebrow" id="qNum">Question 1 of 10</span><div class="pips" id="pips"></div></div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <div class="question" id="qText"></div>
+      <span class="unit" id="qUnit"></span>
+    </div>
+    <div class="cal" id="cal" aria-label="Range picker">
+      <div class="axis"></div>
+      <div id="ticks"></div>
+      <div class="band" id="band"></div>
+      <div class="jaw lo" id="jawLo" tabindex="0" role="slider" aria-label="Lowest value"><span class="tag" id="tagLo"></span></div>
+      <div class="jaw hi" id="jawHi" tabindex="0" role="slider" aria-label="Highest value"><span class="tag" id="tagHi"></span></div>
+      <div class="truth" id="truth" hidden><span id="truthLbl"></span></div>
+    </div>
+    <div class="typed" id="typed">
+      <label for="inLo">From<input id="inLo" inputmode="decimal" autocomplete="off"></label>
+      <span class="dash">to</span>
+      <label for="inHi">To<input id="inHi" inputmode="decimal" autocomplete="off"></label>
+      <span class="width" id="widthLbl"></span>
+    </div>
+    <p class="hint" id="hint">Drag the orange jaws or type numbers. You can write 1.2k, 3 million or 500 BC.</p>
+    <div class="verdict" id="verdict" hidden><span class="big" id="vBig"></span><span class="vt" id="vTitle"></span><span class="vn" id="vNote"></span></div>
+    <div class="foot">
+      <span class="kbd">Enter locks in. Arrow keys move the selected jaw.</span>
+      <button class="btn go" id="lock" type="button">Lock in my range</button>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="card" id="results" hidden>
+    <span class="eyebrow" id="resLbl">Results</span>
+    <div class="score-row">
+      <div class="sc"><div class="v" id="rHits">0/10</div><div class="l">answers inside your range</div></div>
+      <div class="sc"><div class="v" id="rPts">0</div><div class="l">points, out of 1000</div></div>
+      <div class="sc"><div class="v" id="rWidth">—</div><div class="l">typical range width</div></div>
+    </div>
+    <div class="diag"><h3 id="dTitle"></h3><p id="dText"></p></div>
+    <ul class="recap" id="recap"></ul>
+    <div class="actions">
+      <button class="btn go" id="again" type="button">Practice round</button>
+      <button class="btn" id="share" type="button">Copy my result</button>
+      <button class="btn" id="pastBtn" type="button">Play a past day</button>
+      <button class="btn" id="toHome" type="button">Home</button>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="card stats" id="stats">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap"><h3 style="font-size:22px;font-weight:800">My calibration</h3><span class="eyebrow" id="statN"></span></div>
+    <div>
+      <div class="meter"><div class="fill" id="mFill"></div><div class="target" style="left:90%"></div><div class="lab"><span id="mLab"></span></div></div>
+      <div class="meter-cap"><span>0%</span><span style="color:var(--range);font-weight:600">target 90%</span><span>100%</span></div>
+    </div>
+    <p style="margin:0;color:var(--muted);font-size:15.5px" id="statText"></p>
+    <div class="hist-wrap" id="histWrap"><div class="hist" id="hist"></div><div class="hist-line" style="bottom:82px"><span>9 / 10</span></div></div>
+    <span class="eyebrow" id="histCap">Answers inside per round, newest on the right</span>
+  </section>
+
+  <section class="card adv" id="adv">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap"><h3 style="font-size:22px;font-weight:800">Advanced stats</h3><span class="eyebrow" id="advN"></span></div>
+    <div class="adv-grid">
+      <div><div class="v" id="aStreak">0</div><div class="l">day streak</div></div>
+      <div><div class="v" id="aBest">—</div><div class="l">best daily score</div></div>
+      <div><div class="v" id="aAvg">—</div><div class="l">average points per game</div></div>
+    </div>
+    <div>
+      <h4>Your guess bias</h4>
+      <div class="bias" id="biasBar"><i id="biasMark" style="left:50%"></i></div>
+      <div class="bias-cap"><span>you guess too high</span><span>balanced</span><span>you guess too low</span></div>
+      <p style="margin:8px 0 0;color:var(--muted);font-size:15px" id="biasText"></p>
+    </div>
+    <div>
+      <h4>By type of question</h4>
+      <div class="types" id="types"></div>
+    </div>
+  </section>
+
+  <footer>A new game every day at midnight, your time. Your scores stay in this browser.<br>Country data: <a href="https://github.com/mledoze/countries" target="_blank" rel="noopener">mledoze/countries</a> (ODbL). Element data: <a href="https://github.com/Bowserinator/Periodic-Table-JSON" target="_blank" rel="noopener">Periodic-Table-JSON</a> (CC BY-SA 3.0).</footer>
+</div>
+<div class="modal-scrim" id="acct" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="acctTitle">
+    <div id="acctStep1" style="display:flex;flex-direction:column;gap:16px">
+      <span class="new">NEW: NINETY SURE ACCOUNTS</span>
+      <h2 id="acctTitle">You've finished 3 games on this device.</h2>
+      <p>An account keeps your games on every device, and it comes with a few extras.</p>
+      <ul class="perks">
+        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5" width="12" height="9" rx="1"/><path d="M6 18h6"/><rect x="16" y="8" width="5" height="11" rx="1"/></svg></span><div><b>Your history, everywhere <em class="soon">soon</em></b><span>Finished games follow you to your phone, laptop and tablet.</span></div></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/><path d="M12 14v4M8 20h8"/></svg></span><div><b>Daily leaderboard <em class="soon">soon</em></b><span>See who was sharpest today, and where you rank.</span></div></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V4M4 20h16"/><path d="M7 15l4-5 3 3 5-7"/></svg></span><div><b>Advanced stats <em class="ready">ready</em></b><span>Your guess bias, streaks, and how you do on amounts, years and percentages.</span></div></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.6-1 1.1-1.9-.6-1.1.1-2.4 1.4-2.4H17a4 4 0 0 0 4-4c0-5.2-4-9.7-9-9.7z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/><circle cx="15.5" cy="8" r="1.2" fill="currentColor"/></svg></span><div><b>Themes <em class="ready">ready</em></b><span>Four colourways for the calipers.</span></div></li>
+      </ul>
+      <button class="btn go" id="acctCreate" type="button">Create account or log in</button>
+      <button class="later" id="acctLater" type="button">Not now</button>
+      <span class="fine">You never need an account to play.</span>
+    </div>
+    <div id="acctStep2" hidden style="display:flex;flex-direction:column;gap:16px">
+      <span class="new">EARLY ACCESS</span>
+      <h2 id="acctTitle2">Accounts open soon.</h2>
+      <p>Sign-in, synced history and the leaderboard aren't switched on yet. Until then, the extras that work on this device are yours now.</p>
+      <div><b style="display:block;margin-bottom:8px">Pick a theme</b><div class="swatches" id="swSheet"></div></div>
+      <button class="btn go" id="acctStats" type="button">See my advanced stats</button>
+      <button class="later" id="acctClose" type="button">Back to the game</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="questions.js"></script>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+/* ===================== QUESTION BANK =====================
+   [id, question, answer, unit, scale, min, max, note]
+   scale: log (positive amounts) | year | lin (percent, temperature) */
+const Q=(typeof QUESTIONS!=='undefined'&&Array.isArray(QUESTIONS))?QUESTIONS:[];
+const QMAP=Object.fromEntries(Q.map(q=>[q[0],q]));
+
+/* ===================== helpers ===================== */
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function shuffle(arr,r){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const todayKey=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const LAUNCH_DAY='2026-10-05';
+function dayIndex(key){const [y,m,d]=key.split('-').map(Number),[a,b,c]=LAUNCH_DAY.split('-').map(Number);return Math.round((Date.UTC(y,m-1,d)-Date.UTC(a,b-1,c))/864e5);}
+function dailySet(key){const n=Q.length,i=Math.max(0,dayIndex(key));const out=[];for(let j=0;j<10;j++)out.push(Q[(i*10+j)%n][0]);return out;}
+function freshDays(){return Math.floor(Q.length/10);}
+
+const toT=(q,v)=>q[4]==='log'?Math.log(v/q[5])/Math.log(q[6]/q[5]):(v-q[5])/(q[6]-q[5]);
+const fromT=(q,t)=>q[4]==='log'?q[5]*Math.pow(q[6]/q[5],t):q[5]+(q[6]-q[5])*t;
+function nice(q,v){
+  if(q[4]==='year')return Math.round(v);
+  if(q[4]==='lin')return Math.round(v*(Math.abs(v)<10?10:1))/(Math.abs(v)<10?10:1);
+  const p=Math.pow(10,Math.floor(Math.log10(Math.abs(v)))-1);return Math.round(v/p)*p;
+}
+function fmt(q,v){
+  if(q[4]==='year'){v=Math.round(v);return v<=0?(1-v===1?'1 BC':(-v)+' BC'):String(v);}
+  if(q[4]==='lin'){const s=(Math.round(v*10)/10).toLocaleString('en-US').replace('-','−');return q[3]==='%'?s+'%':s+' '+q[3];}
+  return num(v);
+}
+function num(v){
+  const a=Math.abs(v);
+  if(a>=1e12)return trim(v/1e12)+' trillion';
+  if(a>=1e9)return trim(v/1e9)+' billion';
+  if(a>=1e6)return trim(v/1e6)+' million';
+  if(a>=1000)return Math.round(v).toLocaleString('en-US');
+  if(a>=100)return String(Math.round(v));
+  return String(+v.toPrecision(3));
+}
+function trim(x){return String(+x.toPrecision(3));}
+function parse(q,str){
+  let s=String(str).trim().toLowerCase().replace(/[\s,_]/g,'').replace('−','-');
+  if(!s)return NaN;
+  if(q[4]==='year'){const bc=/bc|bce|eKr/i.test(s);const n=parseFloat(s.replace(/[^0-9.\-]/g,''))*(/k$/.test(s)?1000:1);if(isNaN(n))return NaN;return bc?-Math.abs(n):n;}
+  s=s.replace(/%|°c|c$/g,'');
+  const m=s.match(/^(-?[0-9]*\.?[0-9]+)(k|thousand|m|mn|mil|million|b|bn|billion|t|tn|trillion)?$/);
+  if(!m)return NaN;let n=parseFloat(m[1]);
+  const mult={k:1e3,thousand:1e3,m:1e6,mn:1e6,mil:1e6,million:1e6,b:1e9,bn:1e9,billion:1e9,t:1e12,tn:1e12,trillion:1e12}[m[2]]||1;
+  return n*mult;
+}
+/* score for one answer: 0 on a miss; on a hit 10–100, more for narrower ranges */
+function scoreOf(q,lo,hi){
+  const hit=q[2]>=lo&&q[2]<=hi;
+  let w,pts;
+  if(q[4]==='log'){w=Math.log10(hi/lo);pts=Math.round(Math.max(10,100*(1-w/3)));}
+  else{w=(hi-lo)/(q[6]-q[5]);pts=Math.round(Math.max(10,100*(1-w*1.8)));}
+  return {hit,pts:hit?Math.min(100,pts):0,w};
+}
+function widthText(q,lo,hi){
+  if(q[4]==='log'){const r=hi/lo;return r<1.995?`±${Math.round((Math.sqrt(r)-1)*100)}% wide`:`a ${r<10?r.toFixed(1):Math.round(r)}× spread`;}
+  if(q[4]==='year')return `${Math.round(hi-lo)} years wide`;
+  return `${(Math.round((hi-lo)*10)/10).toLocaleString('en-US')}${q[3]==='%'?' points':' '+q[3]} wide`;
+}
+
+/* ===================== storage ===================== */
+const KEY='ninety-sure.v1';
+let store={answered:0,hits:0,runs:[],daily:{},seen:[],log:[],acct:{shown:0,lastAt:0,early:false},color:'signal'};
+try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&Array.isArray(v.runs))store=Object.assign(store,v);}catch(e){}
+if(!Array.isArray(store.log))store.log=[];if(!store.acct)store.acct={shown:0,lastAt:0,early:false};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
+
+/* ===================== game state ===================== */
+let run=null; // {mode, ids, i, answers:[{id,lo,hi,hit,pts}], locked}
+let cur={lo:0.3,hi:0.7};
+function startRun(mode,date){
+  let ids;date=date||todayKey();
+  if(mode==='daily')ids=dailySet(date);
+  else{const seen=new Set(store.seen.slice(-200));const upto=Math.min(Q.length,Math.max(0,dayIndex(todayKey()))*10);let pool=Q.slice(0,upto).filter(q=>!seen.has(q[0]));if(pool.length<10)pool=Q.slice(0,upto);if(pool.length<10)pool=Q;const r=rng(hash(String(Date.now())));ids=shuffle(pool,r).slice(0,10).map(q=>q[0]);}
+  run={mode,ids,i:0,answers:[],locked:false,date};closeMenu();
+  show('play');loadQuestion();
+}
+function show(id){['home','play','results'].forEach(s=>$('#'+s).hidden=s!==id);renderHud();if(id!=='play')renderStats();window.scrollTo({top:0,behavior:'auto'});}
+function q(){return QMAP[run.ids[run.i]];}
+
+function loadQuestion(){
+  const qq=q();run.locked=false;
+  $('#qNum').textContent=`Question ${run.i+1} of ${run.ids.length} · ${run.mode==='daily'?(run.date===todayKey()?'today':nice_date(run.date)):'practice'}`;
+  $('#qText').textContent=qq[1];
+  $('#qUnit').textContent=qq[4]==='year'?'Answer as a year (BC years allowed)':!qq[3]?'Answer as a number':qq[3].startsWith('(')?'Answer as a number '+qq[3]:'Answer in '+qq[3];
+  // default range: a wide middle band, slightly randomised so it never hints at the answer
+  const r=rng(hash(qq[0]+run.date));const c=0.3+r()*0.4;cur={lo:Math.max(0.02,c-0.22),hi:Math.min(0.98,c+0.22)};
+  $('#truth').hidden=true;$('#verdict').hidden=true;$('#hint').hidden=false;
+  $('#lock').textContent='Lock in my range';
+  [$('#inLo'),$('#inHi')].forEach(i=>{i.disabled=false;});
+  drawTicks();updateJaws(true);renderPips();
+  setTimeout(()=>{try{$('#jawLo').focus({preventScroll:true});}catch(e){}},0);
+}
+function drawTicks(){
+  const qq=q(),box=$('#ticks');box.innerHTML='';
+  const add=(t,label,minor)=>{if(t<-0.001||t>1.001)return;const d=document.createElement('div');d.className='tick'+(minor?' minor':'');d.style.left=(t*100)+'%';box.append(d);if(label){const l=document.createElement('div');l.className='ticklbl';l.style.left=(t*100)+'%';l.textContent=label;box.append(l);}};
+  const narrow=$('#cal').clientWidth<460;
+  if(qq[4]==='log'){
+    const a=Math.ceil(Math.log10(qq[5])-1e-9),b=Math.floor(Math.log10(qq[6])+1e-9);const n=b-a+1;const every=narrow&&n>5?2:1;
+    for(let e=a;e<=b;e++){add(toT(qq,Math.pow(10,e)),((e-a)%every===0)?num(Math.pow(10,e)):'',false);for(let m=2;m<10;m++)if(m===2||m===5)add(toT(qq,m*Math.pow(10,e)),'',true);}
+  }else{
+    const span=qq[6]-qq[5];const steps=[1,2,5,10,20,25,50,100,200,250,500,1000];const target=narrow?4:7;
+    const st=steps.find(s=>span/s<=target)||1000;
+    for(let v=Math.ceil(qq[5]/st)*st;v<=qq[6];v+=st)add(toT(qq,v),fmt(qq,v),false);
+    const mst=st/ (st%5===0?5:2);for(let v=Math.ceil(qq[5]/mst)*mst;v<=qq[6];v+=mst)if(Math.abs(v/st-Math.round(v/st))>1e-6)add(toT(qq,v),'',true);
+  }
+}
+function vals(){const qq=q();return {lo:nice(qq,fromT(qq,cur.lo)),hi:nice(qq,fromT(qq,cur.hi))};}
+function updateJaws(fillInputs){
+  const qq=q(),{lo,hi}=vals();
+  $('#jawLo').style.left=(cur.lo*100)+'%';$('#jawHi').style.left=(cur.hi*100)+'%';
+  $('#band').style.left=(cur.lo*100)+'%';$('#band').style.width=((cur.hi-cur.lo)*100)+'%';
+  $('#tagLo').textContent=fmt(qq,lo);$('#tagHi').textContent=fmt(qq,hi);
+  {const W=$('#cal').clientWidth||600;const tl=$('#tagLo'),th=$('#tagHi');const lw=tl.offsetWidth||60,hw=th.offsetWidth||60;
+   const flipLo=cur.lo*W<lw+24,flipHi=(1-cur.hi)*W<hw+24;
+   tl.style.right=flipLo?'auto':'';tl.style.left=flipLo?'22px':'';
+   th.style.left=flipHi?'auto':'';th.style.right=flipHi?'22px':'';
+   if(flipLo&&!flipHi&&(cur.hi-cur.lo)*W<lw+hw+60){th.style.top='-36px';}else th.style.top='';
+   if(flipHi&&!flipLo&&(cur.hi-cur.lo)*W<lw+hw+60){tl.style.top='-36px';}else if(!(flipHi&&!flipLo))tl.style.top='';}
+  $('#jawLo').setAttribute('aria-valuetext',fmt(qq,lo));$('#jawHi').setAttribute('aria-valuetext',fmt(qq,hi));
+  if(fillInputs){$('#inLo').value=fmt(qq,lo).replace(/ (trillion|billion|million)$/,m=>' '+m.trim()).replace(/ ?(%|°C|°c)$/,'');$('#inHi').value=fmt(qq,hi).replace(/ ?(%|°C)$/,'');$('#inLo').setCustomValidity('');$('#inHi').setCustomValidity('');}
+  const s=scoreOf(qq,lo,hi);
+  $('#widthLbl').innerHTML=`Range is <b>${widthText(qq,lo,hi)}</b> · worth <b>${Math.min(100,Math.round(qq[4]==='log'?Math.max(10,100*(1-s.w/3)):Math.max(10,100*(1-s.w*1.8))))}</b> pts if it's right`;
+}
+
+/* dragging */
+const MIN_GAP=0.006;
+function setT(which,t){t=Math.max(0,Math.min(1,t));if(which==='lo')cur.lo=Math.min(t,cur.hi-MIN_GAP);else cur.hi=Math.max(t,cur.lo+MIN_GAP);updateJaws(true);}
+let drag=null;
+function tFromEvent(e){const b=$('#cal').getBoundingClientRect();return (e.clientX-b.left)/b.width;}
+['lo','hi'].forEach(w=>{
+  const el=$('#jaw'+(w==='lo'?'Lo':'Hi'));
+  el.addEventListener('pointerdown',e=>{if(run.locked)return;e.preventDefault();e.stopPropagation();drag=w;el.setPointerCapture(e.pointerId);el.focus({preventScroll:true});});
+  el.addEventListener('pointermove',e=>{if(drag===w)setT(w,tFromEvent(e));});
+  el.addEventListener('pointerup',()=>{drag=null;});el.addEventListener('pointercancel',()=>{drag=null;});
+  el.addEventListener('keydown',e=>{if(run.locked)return;const step=e.shiftKey?0.05:0.01;
+    if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();setT(w,cur[w]-step);}
+    if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();setT(w,cur[w]+step);}
+    if(e.key==='Home'){e.preventDefault();setT(w,0);}if(e.key==='End'){e.preventDefault();setT(w,1);}});
+});
+// tapping the track moves the nearest jaw
+$('#cal').addEventListener('pointerdown',e=>{if(run.locked||e.target.closest('.jaw'))return;const t=tFromEvent(e);const w=Math.abs(t-cur.lo)<Math.abs(t-cur.hi)?'lo':'hi';setT(w,t);drag=w;const el=$('#jaw'+(w==='lo'?'Lo':'Hi'));try{el.setPointerCapture(e.pointerId);}catch(_){}el.focus({preventScroll:true});});
+$('#cal').addEventListener('pointermove',e=>{if(drag&&!e.target.closest('.jaw'))setT(drag,tFromEvent(e));});
+window.addEventListener('pointerup',()=>{drag=null;});
+
+/* typed values */
+function typed(which){
+  const el=which==='lo'?$('#inLo'):$('#inHi');const qq=q();const v=parse(qq,el.value);
+  if(isNaN(v)){el.setCustomValidity('Type a number, like 1200, 1.2k or 3 million');return false;}
+  if(qq[4]==='log'&&v<=0){el.setCustomValidity('Must be more than 0');return false;}
+  const rawT=toT(qq,v);if(rawT<-1e-9||rawT>1+1e-9){toast(`That's off this scale. Use ${fmt(qq,qq[5])} to ${fmt(qq,qq[6])}.`);el.setCustomValidity('Outside the scale');return false;}
+  const t=Math.max(0,Math.min(1,rawT));el.setCustomValidity('');
+  if(which==='lo')cur.lo=Math.min(t,cur.hi-MIN_GAP);else cur.hi=Math.max(t,cur.lo+MIN_GAP);
+  // keep the exact typed number when it is inside the scale
+  updateJaws(false);return true;
+}
+$('#inLo').addEventListener('change',()=>{if(typed('lo'))updateJaws(true);});
+$('#inHi').addEventListener('change',()=>{if(typed('hi'))updateJaws(true);});
+[$('#inLo'),$('#inHi')].forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();if(typed(el.id==='inLo'?'lo':'hi')){updateJaws(true);lockOrNext();}}}));
+
+/* lock + reveal */
+function lockOrNext(){
+  if(!run)return;
+  if(!run.locked){
+    const qq=q(),{lo,hi}=vals();const s=scoreOf(qq,lo,hi);
+    run.locked=true;run.answers.push({id:qq[0],lo,hi,hit:s.hit,pts:s.pts,w:s.w});
+    store.answered++;if(s.hit)store.hits++;store.log.push({id:qq[0],k:qq[4],hit:s.hit,dir:s.hit?0:(qq[2]>hi?1:-1),pts:s.pts});if(store.log.length>800)store.log=store.log.slice(-800);store.seen.push(qq[0]);if(store.seen.length>400)store.seen=store.seen.slice(-400);save();
+    const tt=Math.max(0,Math.min(1,toT(qq,qq[2])));
+    const tr=$('#truth');tr.hidden=false;tr.classList.remove('drop');void tr.offsetWidth;tr.classList.add('drop');tr.style.left=(tt*100)+'%';
+    $('#truthLbl').textContent='Answer: '+fmt(qq,qq[2]);
+    const lbl=$('#truthLbl');lbl.style.transform=tt<0.12?'translateX(0)':tt>0.88?'translateX(-100%)':'translateX(-50%)';
+    $('#hint').hidden=true;$('#verdict').hidden=false;$('#verdict').className='verdict '+(s.hit?'hit':'miss');
+    $('#vBig').textContent=s.hit?'+'+s.pts:'0';
+    let title;
+    if(s.hit)title=s.pts>=85?'Inside, and razor sharp.':s.pts>=55?'Inside your range.':'Inside, but that range was very wide.';
+    else{const off=qq[2]<lo?'lower':'higher';title=`Missed: the answer was ${off} than your range.`;}
+    $('#vTitle').textContent=title;$('#vNote').textContent=qq[7];
+    [$('#inLo'),$('#inHi')].forEach(i=>{i.disabled=true;});
+    $('#lock').textContent=run.i===run.ids.length-1?'See my results':'Next question';
+    renderPips();renderHud();$('#lock').focus({preventScroll:true});
+  }else{
+    run.i++;if(run.i>=run.ids.length)finish();else loadQuestion();
+  }
+}
+$('#lock').addEventListener('click',lockOrNext);
+document.addEventListener('keydown',e=>{if($('#play').hidden)return;if(e.key==='Enter'&&!['INPUT','BUTTON'].includes(document.activeElement.tagName)){e.preventDefault();lockOrNext();}});
+
+function renderPips(){const p=$('#pips');p.innerHTML='';run.ids.forEach((id,i)=>{const d=document.createElement('span');const a=run.answers[i];d.className='pip'+(a?(a.hit?' hit':' miss'):i===run.i?' now':'');p.append(d);});}
+function renderHud(){
+  const h=$('#hud');
+  if(run&&!$('#play').hidden){const hits=run.answers.filter(a=>a.hit).length,pts=run.answers.reduce((s,a)=>s+a.pts,0);h.innerHTML=`<span>Inside <b>${hits}/${run.answers.length}</b></span><span>Points <b>${pts}</b></span>`;}
+  else{const rate=store.answered?Math.round(store.hits/store.answered*100):null;h.innerHTML=rate===null?'<span>No rounds yet</span>':`<span>Lifetime hit rate <b>${rate}%</b></span><span>Rounds <b>${store.runs.length}</b></span>`;}
+}
+
+/* results */
+function diagnose(hits,n,avgPts){
+  const rate=hits/n;
+  if(rate>=0.85&&rate<=0.95)return ['Well calibrated.',`You were right ${hits} times out of ${n}, right where a true 90% range should land. Now try to win more points by tightening your ranges a little.`];
+  if(rate>0.95&&avgPts<45)return ['Too careful.',`You caught every answer, but your ranges were very wide. Being 100% sure is safe and tells you little. Tighten them until you miss about one in ten.`];
+  if(rate>0.95)return ['Sharp and right.',`Every answer landed inside, and your ranges were tight. You could probably narrow them further and still hit 9 out of 10.`];
+  if(rate>=0.7)return ['A little overconfident.',`${hits} of ${n} is close, but “90% sure” should mean 9 out of 10. Widen your ranges a bit on topics you know less about.`];
+  return ['Overconfident, like most people.',`You were inside only ${hits} of ${n} times. Studies find most people's 90% ranges catch the answer only about half the time. Try making your ranges twice as wide and see what happens.`];
+}
+function finish(){
+  const hits=run.answers.filter(a=>a.hit).length,pts=run.answers.reduce((s,a)=>s+a.pts,0),n=run.answers.length;
+  const logs=run.answers.filter(a=>QMAP[a.id][4]==='log').map(a=>Math.pow(10,a.w)).sort((x,y)=>x-y);
+  const med=logs.length?logs[Math.floor(logs.length/2)]:null;
+  const first=run.mode==='daily'&&!store.daily[run.date];
+  store.runs.push({date:run.date,mode:run.mode,hits,n,pts});if(store.runs.length>60)store.runs=store.runs.slice(-60);
+  if(first)store.daily[run.date]={hits,n,pts,marks:run.answers.map(a=>a.hit?1:0)};
+  save();
+  $('#resLbl').textContent=run.mode==='daily'?`Game for ${nice_date(run.date)}${first?'':' · replay, your first score is kept'}`:'Practice round';
+  $('#rHits').textContent=`${hits}/${n}`;$('#rPts').textContent=pts;
+  $('#rWidth').textContent=med?(med<2?'±'+Math.round((Math.sqrt(med)-1)*100)+'%':(med<10?med.toFixed(1):Math.round(med))+'×'):'—';
+  const [t,d]=diagnose(hits,n,pts/n);$('#dTitle').textContent=t;$('#dText').textContent=d;
+  const rc=$('#recap');rc.innerHTML='';
+  run.answers.forEach(a=>{const qq=QMAP[a.id];const li=document.createElement('li');li.innerHTML=`<span class="m ${a.hit?'hit':'miss'}">${a.hit?'✓':'✕'}</span><span class="q"></span><span class="r"></span>`;const U=v=>fmt(qq,v)+(qq[4]==='log'?' '+qq[3].replace(/^\(.*\)$/,''):'');li.querySelector('.q').textContent=qq[1]+' '+U(qq[2]).trim();li.querySelector('.r').textContent=`you: ${fmt(qq,a.lo)} – ${fmt(qq,a.hi)} · ${a.pts} pts`;rc.append(li);});
+  $('#share').hidden=run.mode!=='daily';
+  show('results');
+  maybeAccountPrompt();
+}
+$('#share').addEventListener('click',()=>{
+  const d=store.daily[run.date]||{};const marks=(d.marks||run.answers.map(a=>a.hit?1:0)).map(m=>m?'■':'□').join('');
+  const txt=`Ninety Sure · ${nice_date(run.date)}\n${marks}\n${d.hits}/${d.n} inside my 90% ranges · ${d.pts} pts`;
+  try{navigator.clipboard.writeText(txt).then(()=>toast('Result copied. Paste it anywhere.'),()=>toast('Copying is blocked here.'));}catch(e){toast('Copying is blocked here.');}
+});
+$('#again').addEventListener('click',()=>startRun('practice'));
+$('#toHome').addEventListener('click',()=>{applyColor(store.color);renderHome();show('home');});
+$('#playDaily').addEventListener('click',()=>startRun('daily'));
+$('#playPractice').addEventListener('click',()=>startRun('practice'));
+
+function renderHome(){
+  const k=todayKey();$('#todayLbl').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  const d=store.daily[k];
+  $('#playDaily').textContent=d?'Replay today\'s 10':'Play today\'s 10';
+  $('#dailyDone').textContent=d?`Today: ${d.hits}/${d.n} inside, ${d.pts} pts. Replays don't change it.`:'';
+}
+function renderStats(){
+  if(typeof renderAdvanced==='function')try{renderAdvanced();}catch(e){}
+  const n=store.answered,rate=n?store.hits/n:0;
+  $('#statN').textContent=n?`${n} ranges set`:'';
+  $('#mFill').style.width=(rate*100)+'%';
+  $('#mLab').textContent=n?`${Math.round(rate*100)}% of answers inside your ranges`:'Play a round to see your calibration';
+  $('#mLab').style.color=n&&rate>0.3?'#fff':'var(--ink)';
+  $('#statText').textContent=!n?'Your hit rate builds up over every round you play. The goal is the orange line: 90%.':rate<0.8?`Below the line means overconfident: your “90% sure” ranges miss too often.`:rate>0.96?`Above the line means you're playing it safe: try tighter ranges for more points.`:`You're close to the 90% line. That's rare: most people start far below it.`;
+  const runs=store.runs.slice(-20);const h=$('#hist');h.innerHTML='';
+  $('#histWrap').hidden=!runs.length;$('#histCap').hidden=!runs.length;
+  runs.forEach(r=>{const d=document.createElement('div');const frac=r.hits/r.n;d.style.height=Math.max(3,frac*100*0.9)+'px';d.className=frac>=0.85?'ok':'';d.title=`${r.date} · ${r.mode}: ${r.hits}/${r.n}`;h.append(d);});
+}
+let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600);}
+window.addEventListener('resize',()=>{if(run&&!$('#play').hidden)drawTicks();});
+
+
+/* ===================== menu + past games calendar ===================== */
+const LAUNCH=LAUNCH_DAY;
+function nice_date(k){const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});}
+const keyOf=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+let view=(()=>{const d=new Date();return {y:d.getFullYear(),m:d.getMonth()};})();
+let lastFocus=null;
+function openMenu(){lastFocus=document.activeElement;renderCalendar();$('#scrim').hidden=false;const d=$('#drawer');d.classList.add('open');d.setAttribute('aria-hidden','false');$('#menuBtn').setAttribute('aria-expanded','true');setTimeout(()=>$('#closeMenu').focus(),30);}
+function closeMenu(){const d=$('#drawer');if(!d.classList.contains('open'))return;d.classList.remove('open');d.setAttribute('aria-hidden','true');$('#scrim').hidden=true;$('#menuBtn').setAttribute('aria-expanded','false');try{(lastFocus||$('#menuBtn')).focus({preventScroll:true});}catch(e){}}
+$('#menuBtn').addEventListener('click',openMenu);
+$('#closeMenu').addEventListener('click',closeMenu);
+$('#scrim').addEventListener('click',closeMenu);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu();});
+$('#navToday').addEventListener('click',()=>startRun('daily',todayKey()));
+$('#navPractice').addEventListener('click',()=>startRun('practice'));
+$('#navStats').addEventListener('click',()=>{closeMenu();if(run&&!$('#play').hidden){}else{} $('#stats').scrollIntoView({behavior:'smooth',block:'start'});});
+$('#pastBtn').addEventListener('click',openMenu);
+$('#mPrev').addEventListener('click',()=>{view.m--;if(view.m<0){view.m=11;view.y--;}renderCalendar();});
+$('#mNext').addEventListener('click',()=>{view.m++;if(view.m>11){view.m=0;view.y++;}renderCalendar();});
+function renderCalendar(){
+  const today=todayKey();const [ly,lm]=LAUNCH.split('-').map(Number);
+  const now=new Date();
+  $('#mName').textContent=new Date(view.y,view.m,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  $('#mPrev').disabled=view.y<ly||(view.y===ly&&view.m<=lm-1);
+  $('#mNext').disabled=view.y>now.getFullYear()||(view.y===now.getFullYear()&&view.m>=now.getMonth());
+  const g=$('#calgrid');g.innerHTML='';
+  ['Mo','Tu','We','Th','Fr','Sa','Su'].forEach(d=>{const e=document.createElement('div');e.className='dow';e.textContent=d;g.append(e);});
+  const first=new Date(view.y,view.m,1);const lead=(first.getDay()+6)%7;const days=new Date(view.y,view.m+1,0).getDate();
+  for(let i=0;i<lead;i++){const e=document.createElement('div');e.className='day blank';g.append(e);}
+  for(let d=1;d<=days;d++){
+    const k=keyOf(new Date(view.y,view.m,d));const res=store.daily[k];
+    const b=document.createElement('button');b.type='button';b.className='day';
+    const avail=k>=LAUNCH&&k<=today;
+    b.innerHTML=`<span class="n">${d}</span><span class="s">${res?res.hits+'/'+res.n:''}</span>`;
+    if(!avail){b.disabled=true;b.setAttribute('aria-label',`${nice_date(k)}, not available`);}
+    else{
+      if(res){b.classList.add('played');if(res.hits>=9)b.classList.add('good');}
+      if(k===today)b.classList.add('today');
+      if(run&&run.mode==='daily'&&run.date===k)b.classList.add('sel');
+      b.setAttribute('aria-label',`${nice_date(k)}${k===today?' (today)':''}: ${res?`played, ${res.hits} of ${res.n} inside, ${res.pts} points`:'not played yet'}`);
+      b.addEventListener('click',()=>startRun('daily',k));
+    }
+    g.append(b);
+  }
+  const played=Object.keys(store.daily).filter(k=>k>=LAUNCH&&k<=today).length;
+  const total=Math.round((new Date(now.getFullYear(),now.getMonth(),now.getDate())-new Date(ly,lm-1,1))/864e5)+1;
+  $('#archNote').textContent=`You've played ${played} of ${total} days. Tap any day to play its 10 questions.`;
+  const td=store.daily[today];$('#navTodayS').textContent=td?`${td.hits}/${td.n} done`:'not played';
+}
+
+
+/* ===================== themes ===================== */
+const COLORS=[['signal','Signal','#ee5a1c'],['harbour','Harbour','#1f62c4'],['olive','Olive','#6f7f12'],['plum','Plum','#a3306e']];
+function applyColor(c){if(!COLORS.some(x=>x[0]===c))c='signal';store.color=c;if(c==='signal')document.documentElement.removeAttribute('data-color');else document.documentElement.setAttribute('data-color',c);renderSwatches();}
+function renderSwatches(){['#swMenu','#swSheet'].forEach(sel=>{const box=$(sel);if(!box)return;box.innerHTML='';COLORS.forEach(([k,name,hex])=>{const b=document.createElement('button');b.type='button';b.className='sw';b.setAttribute('aria-pressed',store.color===k);b.innerHTML=`<i style="background:${hex}"></i>${name}`;b.addEventListener('click',()=>{applyColor(k);save();});box.append(b);});});}
+
+/* ===================== advanced stats ===================== */
+function streak(){const today=todayKey();let d=new Date();let n=0;if(!store.daily[today])d.setDate(d.getDate()-1);for(;;){const k=keyOf(d);if(store.daily[k]){n++;d.setDate(d.getDate()-1);}else break;}return n;}
+function renderAdvanced(){
+  const L=store.log;$('#advN').textContent=L.length?`from ${L.length} answers`:'';
+  $('#aStreak').textContent=streak();
+  const ds=Object.values(store.daily);$('#aBest').textContent=ds.length?Math.max(...ds.map(d=>d.pts)):'—';
+  $('#aAvg').textContent=store.runs.length?Math.round(store.runs.reduce((a,r)=>a+r.pts,0)/store.runs.length):'—';
+  const misses=L.filter(a=>!a.hit),low=misses.filter(a=>a.dir>0).length,high=misses.filter(a=>a.dir<0).length;
+  const b=misses.length?(low-high)/misses.length:0;$('#biasMark').style.left=(50+b*45)+'%';
+  $('#biasText').textContent=misses.length<3?'Miss a few answers and your pattern will show here.':
+    Math.abs(b)<0.25?`Your ${misses.length} misses are split evenly: ${low} too low, ${high} too high.`:
+    b>0?`Of your ${misses.length} misses, ${low} were too low. The real answer was usually bigger than you thought, so stretch your upper jaw further.`:
+    `Of your ${misses.length} misses, ${high} were too high. The real answer was usually smaller than you thought, so pull your lower jaw down.`;
+  const T=[['log','Amounts and sizes'],['year','Years'],['lin','Percent and temperature']];const box=$('#types');box.innerHTML='';
+  T.forEach(([k,name])=>{const xs=L.filter(a=>a.k===k);const r=xs.length?xs.filter(a=>a.hit).length/xs.length:0;const row=document.createElement('div');row.className='trow';
+    row.innerHTML=`<span></span><span class="tb"><i style="width:${r*100}%"></i><b></b></span><span class="n">${xs.length?Math.round(r*100)+'% of '+xs.length:'no answers'}</span>`;row.firstChild.textContent=name;box.append(row);});
+}
+
+/* ===================== account prompt ===================== */
+function finishedCount(){return store.runs.length;}
+function openAccount(fromMenu){
+  const n=finishedCount();
+  $('#acctTitle').textContent=n>=1?`You've finished ${n} game${n===1?'':'s'} on this device.`:'Ninety Sure accounts are coming.';
+  $('#acctStep1').hidden=false;$('#acctStep2').hidden=true;$('#acct').hidden=false;
+  if(!fromMenu){store.acct.shown++;store.acct.lastAt=n;save();}
+  renderSwatches();setTimeout(()=>$('#acctCreate').focus(),30);
+}
+function closeAccount(){$('#acct').hidden=true;}
+function maybeAccountPrompt(){const n=finishedCount();const a=store.acct;
+  if(a.early)return;
+  if((a.shown===0&&n>=3)||(a.shown===1&&n>=a.lastAt+7))setTimeout(()=>openAccount(false),700);}
+$('#acctCreate').addEventListener('click',()=>{store.acct.early=true;save();$('#acctStep1').hidden=true;$('#acctStep2').hidden=false;renderSwatches();setTimeout(()=>$('#acctStats').focus(),30);});
+$('#acctLater').addEventListener('click',closeAccount);
+$('#acctClose').addEventListener('click',closeAccount);
+$('#acctStats').addEventListener('click',()=>{closeAccount();renderAdvanced();$('#adv').scrollIntoView({behavior:'smooth',block:'start'});});
+$('#acct').addEventListener('click',e=>{if(e.target.id==='acct')closeAccount();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#acct').hidden)closeAccount();});
+$('#navAccount').addEventListener('click',()=>{closeMenu();openAccount(true);});
+
+window.__ninety={dayIndex,freshDays,openAccount,renderAdvanced,applyColor,openMenu,renderCalendar,startRun,store:()=>store,Q,scoreOf,parse,fmt,dailySet,toT,fromT,nice,get run(){return run;},cur:()=>cur,setT};
+renderHome();show('home');
+})();
+</script>
+</body>
+</html>
