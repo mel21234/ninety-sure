@@ -186,23 +186,32 @@ button{font:inherit;color:inherit;cursor:pointer}
 :root[data-color="harbour"] .btn.go:hover,:root[data-color="olive"] .btn.go:hover,:root[data-color="plum"] .btn.go:hover{background:var(--range);filter:brightness(.92)}
 
 /* account sheet */
-.modal-scrim{position:fixed;inset:0;background:rgba(28,28,26,.45);z-index:70;display:flex;align-items:center;justify-content:center;padding:16px}
-.sheet{background:var(--card);border:2px solid var(--ink);border-radius:6px;max-width:440px;width:100%;max-height:calc(100% - 16px);overflow-y:auto;padding:26px 24px 18px;display:flex;flex-direction:column;gap:16px;box-shadow:6px 6px 0 var(--range)}
-.sheet .new{font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--range)}
-.sheet h2{font-size:28px;font-weight:800;font-stretch:90%;line-height:1.08;letter-spacing:-.01em}
+.modal-scrim{position:fixed;inset:0;background:rgba(28,28,26,.4);z-index:70;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);width:100%;max-width:560px;max-height:calc(100% - 24px);overflow-y:auto;border-top:6px solid var(--range);border-radius:10px 10px 0 0;padding:22px max(20px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px;position:relative}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:rise .28s ease-out}}
+@keyframes rise{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.sheet .grab{width:44px;height:4px;border-radius:2px;background:var(--rule);margin:-10px auto 0}
+.sheet .kicker{font-size:14px;color:var(--muted)}
+.sheet .kicker b{color:var(--range)}
+.sheet h2{font-size:27px;font-weight:800;font-stretch:90%;line-height:1.1;letter-spacing:-.01em}
 .sheet p{margin:0;color:var(--muted);font-size:16px}
-.perks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
-.perks li{display:grid;grid-template-columns:38px minmax(0,1fr);gap:12px;align-items:start}
-.perks .ic{width:38px;height:38px;border:1.5px solid var(--ink);border-radius:4px;display:grid;place-items:center;background:var(--bg)}
-.perks .ic svg{width:20px;height:20px}
-.perks b{display:block;font-size:16px}
-.perks span{font-size:14.5px;color:var(--muted);line-height:1.35}
-.soon{display:inline-block;font-size:11.5px;font-weight:700;color:var(--muted);border:1px solid var(--rule);border-radius:3px;padding:0 5px;margin-left:6px;vertical-align:2px}
-.ready{display:inline-block;font-size:11.5px;font-weight:700;color:var(--truth);border:1px solid var(--truth);border-radius:3px;padding:0 5px;margin-left:6px;vertical-align:2px}
-.sheet .btn{width:100%}
-.sheet .later{background:none;border:0;font-weight:700;color:var(--muted);padding:8px;font-size:16px}
-.sheet .later:hover{color:var(--ink)}
-.sheet .fine{font-size:13px;text-align:center;color:var(--muted)}
+.myrate{border:1px solid var(--rule);border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.myrate .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14.5px}
+.myrate .row b{font-family:var(--display);font-size:24px;font-weight:800}
+.myrate .track{position:relative;height:12px;background:var(--card);border:1px solid var(--rule)}
+.myrate .track i{position:absolute;inset:0 auto 0 0;background:var(--ink)}
+.myrate .track em{position:absolute;top:-4px;bottom:-4px;left:90%;width:3px;background:var(--range)}
+.keep{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.keep li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:baseline;padding:10px 0;border-bottom:1px dashed var(--rule);font-size:15.5px}
+.keep li:last-child{border-bottom:0}
+.keep .br{font-family:var(--display);font-weight:800;color:var(--range);font-size:17px;letter-spacing:-.04em}
+.keep span{color:var(--muted);font-size:14.5px;display:block}
+.keep .st{font-size:12.5px;font-weight:700;white-space:nowrap}
+.keep .st.later2{color:var(--muted)}
+.keep .st.now{color:var(--truth)}
+.sheet .acts{display:flex;gap:10px;flex-wrap:wrap}
+.sheet .acts .btn{flex:1;min-width:150px}
+.sheet .fine{font-size:13.5px;color:var(--muted)}
 .swatches{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .sw{border:1.5px solid var(--rule);border-radius:4px;background:var(--card);padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:13px;font-weight:600}
 .sw i{display:block;width:100%;max-width:56px;height:14px;border-radius:2px}
@@ -251,7 +260,7 @@ footer a{color:inherit}
     <button type="button" id="navToday">Today's game <span id="navTodayS"></span></button>
     <button type="button" id="navPractice">Practice round <span>from past days</span></button>
     <button type="button" id="navStats">My calibration</button>
-    <button type="button" id="navAccount">Account <span>coming soon</span></button>
+    <button type="button" id="navAccount">Profile <span>on the way</span></button>
   </div>
   <div style="display:flex;flex-direction:column;gap:10px">
     <h3>Theme</h3>
@@ -368,33 +377,42 @@ footer a{color:inherit}
 </div>
 <div class="modal-scrim" id="acct" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="acctTitle">
+    <div class="grab" aria-hidden="true"></div>
     <div id="acctStep1" style="display:flex;flex-direction:column;gap:16px">
-      <span class="new">NEW: NINETY SURE ACCOUNTS</span>
-      <h2 id="acctTitle">You've finished 3 games on this device.</h2>
-      <p>An account keeps your games on every device, and it comes with a few extras.</p>
-      <ul class="perks">
-        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5" width="12" height="9" rx="1"/><path d="M6 18h6"/><rect x="16" y="8" width="5" height="11" rx="1"/></svg></span><div><b>Your history, everywhere <em class="soon">soon</em></b><span>Finished games follow you to your phone, laptop and tablet.</span></div></li>
-        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/><path d="M12 14v4M8 20h8"/></svg></span><div><b>Daily leaderboard <em class="soon">soon</em></b><span>See who was sharpest today, and where you rank.</span></div></li>
-        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V4M4 20h16"/><path d="M7 15l4-5 3 3 5-7"/></svg></span><div><b>Advanced stats <em class="ready">ready</em></b><span>Your guess bias, streaks, and how you do on amounts, years and percentages.</span></div></li>
-        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.6-1 1.1-1.9-.6-1.1.1-2.4 1.4-2.4H17a4 4 0 0 0 4-4c0-5.2-4-9.7-9-9.7z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/><circle cx="15.5" cy="8" r="1.2" fill="currentColor"/></svg></span><div><b>Themes <em class="ready">ready</em></b><span>Four colourways for the calipers.</span></div></li>
+      <span class="kicker"><b>[ ]</b> Ninety Sure profiles are on the way</span>
+      <h2 id="acctTitle">Keep your streak on every device.</h2>
+      <div class="myrate" id="acctRate">
+        <div class="row"><span>Your answers inside your ranges</span><b id="acctRateV">—</b></div>
+        <div class="track"><i id="acctRateBar" style="width:0%"></i><em title="90% target"></em></div>
+        <span style="font-size:13.5px;color:var(--muted)" id="acctRateT"></span>
+      </div>
+      <ul class="keep">
+        <li><span class="br">[ ]</span><div>Your streak and past games<span>On your phone, laptop and tablet.</span></div><span class="st later2">later</span></li>
+        <li><span class="br">[ ]</span><div>Today's board<span>See who set the sharpest ranges.</span></div><span class="st later2">later</span></li>
+        <li><span class="br">[ ]</span><div>Your calibration history<span>Guess bias, streaks, and how you do on each kind of question.</span></div><span class="st now">open now</span></li>
+        <li><span class="br">[ ]</span><div>Caliper colours<span>Signal, Harbour, Olive or Plum.</span></div><span class="st now">open now</span></li>
       </ul>
-      <button class="btn go" id="acctCreate" type="button">Create account or log in</button>
-      <button class="later" id="acctLater" type="button">Not now</button>
-      <span class="fine">You never need an account to play.</span>
+      <div class="acts">
+        <button class="btn go" id="acctCreate" type="button">Save my progress</button>
+        <button class="btn" id="acctLater" type="button">Keep playing</button>
+      </div>
+      <span class="fine">Playing is free and never needs a sign-up.</span>
     </div>
     <div id="acctStep2" hidden style="display:flex;flex-direction:column;gap:16px">
-      <span class="new">EARLY ACCESS</span>
-      <h2 id="acctTitle2">Accounts open soon.</h2>
-      <p>Sign-in, synced history and the leaderboard aren't switched on yet. Until then, the extras that work on this device are yours now.</p>
-      <div><b style="display:block;margin-bottom:8px">Pick a theme</b><div class="swatches" id="swSheet"></div></div>
-      <button class="btn go" id="acctStats" type="button">See my advanced stats</button>
-      <button class="later" id="acctClose" type="button">Back to the game</button>
+      <span class="kicker"><b>[ ]</b> Early access</span>
+      <h2 id="acctTitle2">Profiles aren't open yet, but your extras are.</h2>
+      <p>Your games stay saved in this browser for now. Your calibration history and caliper colours are unlocked here today.</p>
+      <div><b style="display:block;margin-bottom:8px">Pick your caliper colour</b><div class="swatches" id="swSheet"></div></div>
+      <div class="acts">
+        <button class="btn go" id="acctStats" type="button">Show my calibration history</button>
+        <button class="btn" id="acctClose" type="button">Back to the game</button>
+      </div>
     </div>
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
 
-<script src="questions.js?v=3128"></script>
+<script src="questions.js?v=20261020c"></script>
 <script>
 (function(){
 "use strict";
@@ -728,18 +746,24 @@ function renderAdvanced(){
 }
 
 /* ===================== account prompt ===================== */
-function finishedCount(){return store.runs.length;}
+function dailyCount(){return Object.keys(store.daily).length;}
 function openAccount(fromMenu){
-  const n=finishedCount();
-  $('#acctTitle').textContent=n>=1?`You've finished ${n} game${n===1?'':'s'} on this device.`:'Ninety Sure accounts are coming.';
+  const st=streak(),n=dailyCount();
+  $('#acctTitle').textContent=st>=2?`Keep your ${st}-day streak on every device.`:n>=1?`Keep your ${n} daily game${n===1?'':'s'} on every device.`:'Keep your games on every device.';
+  const rate=store.answered?store.hits/store.answered:null;
+  $('#acctRateV').textContent=rate===null?'—':Math.round(rate*100)+'%';
+  $('#acctRateBar').style.width=rate===null?'0%':(rate*100)+'%';
+  $('#acctRateT').textContent=rate===null?'Play a round to see where you stand. The orange line is the 90% target.':rate<0.8?'Below the orange line: your ranges are a little too tight. A profile would track how you improve.':rate>0.96?'Above the orange line: you could tighten your ranges for more points.':'Right around the orange line. Nicely calibrated.';
   $('#acctStep1').hidden=false;$('#acctStep2').hidden=true;$('#acct').hidden=false;
   if(!fromMenu){store.acct.shown++;store.acct.lastAt=n;save();}
   renderSwatches();setTimeout(()=>$('#acctCreate').focus(),30);
 }
 function closeAccount(){$('#acct').hidden=true;}
-function maybeAccountPrompt(){const n=finishedCount();const a=store.acct;
-  if(a.early)return;
-  if((a.shown===0&&n>=3)||(a.shown===1&&n>=a.lastAt+7))setTimeout(()=>openAccount(false),700);}
+function maybeAccountPrompt(){
+  // only after daily games (not practice): first after the 3rd, once more 5 daily games later
+  const a=store.acct;if(a.early||!run||run.mode!=='daily')return;const n=dailyCount();
+  if((a.shown===0&&n>=3)||(a.shown===1&&n>=a.lastAt+5))setTimeout(()=>openAccount(false),900);
+}
 $('#acctCreate').addEventListener('click',()=>{store.acct.early=true;save();$('#acctStep1').hidden=true;$('#acctStep2').hidden=false;renderSwatches();setTimeout(()=>$('#acctStats').focus(),30);});
 $('#acctLater').addEventListener('click',closeAccount);
 $('#acctClose').addEventListener('click',closeAccount);
